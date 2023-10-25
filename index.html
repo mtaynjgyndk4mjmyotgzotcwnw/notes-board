@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Include Font Awesome and Google Fonts stylesheets -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Alkatra:400,500,600&display=swap"
+    />
+    <!-- Set the character encoding and viewport for the page -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confession Site</title>
+    <!-- Link to external stylesheet 'styles.css' -->
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* Style for the image modal */
+      .image-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 1;
+        text-align: center;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .image-modal-content {
+        max-width: 90%;
+        max-height: 90%;
+      }
+
+      /* Close button for the image modal */
+      .close-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        color: #fff;
+        font-size: 24px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="h1">Wall of random text</h1>
+      <div class="content">
+        <div class="input-container">
+          <!-- Input fields for title and confession -->
+          <input type="text" id="title" placeholder="Your title" />
+          <textarea id="confession" placeholder="Your text"></textarea>
+          <div class="upload-btn-wrapper">
+            <button class="btn">Upload a picture</button>
+            <input
+              type="file"
+              name="profile-pic"
+              id="profile-pic"
+              accept="image/*"
+            />
+          </div>
+          <button id="submit"><i class="fa-solid fa-upload"></i> Submit</button>
+          <div id="confession-list"></div>
+          <div id="profile-preview" style="display: none;">
+            <h3>Profile picture preview</h3>
+            <div id="profile-pic-preview"></div>
+            <p id="image-name"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image modal for profile picture preview -->
+    <div id="imageModal" class="image-modal">
+      <span class="close-button" id="closeModal">&times;</span>
+      <img src="" alt="Profile Picture" class="image-modal-content" id="modalImage">
+    </div>
+
+    <script>
+      // JavaScript code for handling confessions
+
+      // Retrieve saved confessions from local storage when the page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        const savedConfessions = JSON.parse(localStorage.getItem("confessions")) || [];
+        const confessionList = document.getElementById("confession-list");
+
+        for (const confessionData of savedConfessions) {
+          const confessionDiv = createConfessionDiv(confessionData);
+          confessionList.appendChild(confessionDiv);
+        }
+      });
+
+      // Event listener for profile picture input
+      document.getElementById("profile-pic").addEventListener("change", function () {
+        // Handle profile picture selection and preview
+        const profilePicInput = document.getElementById("profile-pic");
+        const profilePicPreview = document.getElementById("profile-pic-preview");
+        const imageName = document.getElementById("image-name"); // New element to display image name
+        const profilePreviewContainer = document.getElementById("profile-preview");
+
+        if (profilePicInput.files && profilePicInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            profilePicPreview.innerHTML = `<img src="${e.target.result}" alt="Picture preview" class="profile-pic" style="max-width: 100px;">`;
+            profilePreviewContainer.style.display = "block";
+
+            // Set the image name below the picture preview
+            imageName.textContent = `Image Name: ${profilePicInput.files[0].name}`;
+
+            // Store the image data URL in local storage
+            localStorage.setItem("profilePicData", e.target.result);
+          };
+          reader.readAsDataURL(profilePicInput.files[0]);
+        } else {
+          profilePicPreview.innerHTML = "";
+          profilePreviewContainer.style.display = "none";
+          imageName.textContent = ""; // Clear the image name
+        }
+      });
+
+      // Event listener to open the profile picture in a modal
+      document.getElementById("profile-pic-preview").addEventListener("click", function () {
+        const modal = document.getElementById("imageModal");
+        const modalImage = document.getElementById("modalImage");
+        const closeModal = document.getElementById("closeModal");
+
+        const profilePicData = localStorage.getItem("profilePicData");
+
+        if (profilePicData) {
+          modal.style.display = "block";
+          modalImage.src = profilePicData;
+
+          // Close the modal when the close button is clicked
+          closeModal.addEventListener("click", function () {
+            modal.style.display = "none";
+          });
+
+          // Close the modal when clicking anywhere outside the image
+          window.addEventListener("click", function (event) {
+            if (event.target === modal) {
+              modal.style.display = "none";
+            }
+          });
+        }
+      });
+
+      document.getElementById("submit").addEventListener("click", function () {
+        // Handle submission of a new confession
+        const titleInput = document.getElementById("title");
+        const confessionInput = document.getElementById("confession");
+        const profilePicData = localStorage.getItem("profilePicData");
+
+        const title = titleInput.value;
+        const confession = confessionInput.value;
+
+        if (title && confession) {
+          // Create a new confession object
+          const confessionData = {
+            title: title,
+            confession: confession,
+            date: new Date().toLocaleString(),
+          };
+
+          if (profilePicData) {
+            confessionData.profilePic = profilePicData;
+          }
+
+          // Save the new confession to local storage
+          const savedConfessions = JSON.parse(localStorage.getItem("confessions")) || [];
+          savedConfessions.push(confessionData);
+          localStorage.setItem("confessions", JSON.stringify(savedConfessions));
+
+          // Create and add the confession entry to the page
+          const confessionDiv = createConfessionDiv(confessionData);
+          const confessionList = document.getElementById("confession-list");
+          confessionList.appendChild(confessionDiv);
+
+          // Clear form fields
+          titleInput.value = "";
+          confessionInput.value = "";
+
+          // Hide the profile preview
+          document.getElementById("profile-preview").style.display = "none";
+        }
+      });
+
+      function createConfessionDiv(confessionData) {
+        // Create a new confession entry div
+        const confessionDiv = document.createElement("div");
+        confessionDiv.className = "confession-entry";
+
+        if (confessionData.profilePic) {
+          const profilePicContainer = document.createElement("div");
+          profilePicContainer.className = "profile-pic-container";
+          const imgElement = document.createElement("img");
+          imgElement.src = confessionData.profilePic;
+          imgElement.className = "profile-pic";
+          imgElement.style.maxWidth = "50px";
+          profilePicContainer.appendChild(imgElement);
+          confessionDiv.appendChild(profilePicContainer);
+
+          const separator1 = document.createElement("div");
+          separator1.className = "separator";
+          confessionDiv.appendChild(separator1);
+        }
+
+        if (confessionData.title) {
+          const titleElement = document.createElement("h2");
+          titleElement.textContent = confessionData.title;
+          confessionDiv.appendChild(titleElement);
+        }
+
+        const textAndDateContainer = document.createElement("div");
+        textAndDateContainer.className = "text-and-date-container";
+        textAndDateContainer.innerHTML += `<p class="text">${confessionData.confession}</p>`;
+        confessionDiv.appendChild(textAndDateContainer);
+
+        const separator2 = document.createElement("div");
+        separator2.className = "separator";
+        textAndDateContainer.appendChild(separator2);
+
+        const dateElement = document.createElement("p");
+        dateElement.innerHTML = `<strong>Submitted:</strong> ${confessionData.date}`;
+        textAndDateContainer.appendChild(dateElement);
+
+        return confessionDiv;
+      }
+    </script>
+  </body>
+</html>
